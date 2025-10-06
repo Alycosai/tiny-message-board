@@ -3,51 +3,84 @@
   <head>
     <meta charset="UTF-8" />
     <title>Tiny Message Board</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+      input { padding: .6rem; width: 100%; max-width: 480px; }
+      button { padding: .6rem 1rem; margin-left: .5rem; }
+      #row { display: flex; gap: .5rem; align-items: center; }
+      @media (max-width: 520px) { #row { flex-direction: column; align-items: stretch; } button { margin-left: 0; } }
+      #list p { margin: .4rem 0; }
+      .muted { color: #666; font-size: .9rem; }
+    </style>
   </head>
   <body>
     <h1>Tiny Message Board</h1>
-    <p>Type something and submit. This sends your text to a server.</p>
+    <p class="muted"><em>Note: For learning purposes, submissions are logged with time and basic visitor info (IP/user-agent).</em></p>
 
-    <input id="msg" type="text" placeholder="Type here..." />
-    <button id="send">Submit</button>
+    <p>Type something and submit:</p>
+    <div id="row">
+      <input id="msg" type="text" placeholder="Type here..." maxlength="500" />
+      <!-- Make sure this is type=button so forms don't steal the click -->
+      <button id="send" type="button">Submit</button>
+    </div>
 
     <h2>Recent messages</h2>
-    <div id="list"></div>
+    <div id="list" class="muted">Loading…</div>
 
     <script>
-      const msg = document.getElementById('msg');
+      // Grab elements
+      const msg  = document.getElementById('msg');
       const send = document.getElementById('send');
       const list = document.getElementById('list');
 
       async function refresh() {
-        const res = await fetch('/messages');
-        const items = await res.json();
-        list.innerHTML = items.map(it =>
-          `<p><strong>${new Date(it.time).toLocaleString()}</strong> — ${it.text}</p>`
-        ).join('');
+        try {
+          const res = await fetch('/messages-public', { cache: 'no-store' });
+          if (!res.ok) throw new Error('GET /messages-public ' + res.status);
+          const items = await res.json();
+          list.innerHTML = items.length
+            ? items.map(it =>
+                `<p><strong>${new Date(it.time).toLocaleString()}</strong> — ${escapeHtml(it.text)}</p>`
+              ).join('')
+            : '<p class="muted">No messages yet.</p>';
+        } catch (e) {
+          list.innerHTML = `<p class="muted">Couldn’t load messages.</p>`;
+          console.error(e);
+        }
       }
 
-      send.addEventListener('click', async () => {
+      // Simple escaping for safety
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      async function submitMessage() {
         const text = msg.value.trim();
-        if (!text) return;
+        if (!text) { msg.focus(); return; }
+
         const res = await fetch('/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text })
         });
-        if (res.ok) {
-          msg.value = '';
-          await refresh();
-        } else {
-          alert('Problem sending message.');
+
+        if (!res.ok) {
+          // Try to show the server's error; fall back if not JSON
+          let message = 'Unknown error';
+          try { const payload = await res.json(); message = payload.error || message; } catch {}
+          alert(`Submit failed (${res.status}): ${message}`);
+          return;
         }
-      });
+        msg.value = '';
+        await refresh();
+      }
 
-      // Press Enter to submit
-      msg.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') send.click();
-      });
+      // Click + Enter submit
+      send.addEventListener('click', submitMessage);
+      msg.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitMessage(); });
 
+      // Load initial list
       refresh();
     </script>
   </body>
