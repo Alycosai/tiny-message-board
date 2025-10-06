@@ -81,14 +81,22 @@ app.get('/messages', requireAuth, (req, res) => {
   });
 });
 
-// Debug note
-app.get('/_debug_auth', (_req, res) => {
-  res.json({
-    hasUser: Boolean((process.env.ADMIN_USER || '').trim()),
-    hasPass: Boolean((process.env.ADMIN_PASS || '').trim())
+// Public read: time + text only (no IP/UA), no auth
+app.get('/messages-public', (req, res) => {
+  fs.readFile(DB_FILE, 'utf8', (err, data) => {
+    if (err && err.code !== 'ENOENT') return res.status(500).json({ error: 'Read error' });
+    const lines = (data || '').trim().split('\n').filter(Boolean);
+    const last = lines.slice(-50).map(line => {
+      try {
+        const obj = JSON.parse(line);
+        return { time: obj.time, text: obj.text }; // redact IP/UA
+      } catch {
+        return null;
+      }
+    }).filter(Boolean).reverse();
+    res.json(last);
   });
 });
-
 
 // Start server
 const PORT = process.env.PORT || 3000;
