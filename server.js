@@ -81,6 +81,15 @@ app.get('/messages', requireAuth, (req, res) => {
   });
 });
 
+// Debug note
+app.get('/_debug_auth', (_req, res) => {
+  res.json({
+    hasUser: Boolean((process.env.ADMIN_USER || '').trim()),
+    hasPass: Boolean((process.env.ADMIN_PASS || '').trim())
+  });
+});
+
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
