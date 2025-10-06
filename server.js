@@ -5,6 +5,20 @@ const path = require('path');
 
 const app = express();
 
+// Basic Auth (very simple lock)
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization || "";
+  const [scheme, encoded] = auth.split(" ");
+  if (scheme === "Basic" && encoded) {
+    const [user, pass] = Buffer.from(encoded, "base64").toString().split(":");
+    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
+      return next(); // let them through
+    }
+  }
+  res.set("WWW-Authenticate", 'Basic realm="Admin Area"');
+  return res.status(401).send("Auth required");
+}
+
 // Parse JSON bodies
 app.use(express.json());
 
@@ -33,7 +47,7 @@ app.post('/messages', (req, res) => {
 });
 
 // Read recent messages
-app.get('/messages', (req, res) => {
+app.get('/messages', requireAuth, (req, res) => {
   fs.readFile(DB_FILE, 'utf8', (err, data) => {
     if (err && err.code !== 'ENOENT') return res.status(500).json({ error: 'Read error' });
     const lines = (data || '').trim().split('\n').filter(Boolean);
