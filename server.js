@@ -5,19 +5,42 @@ const path = require('path');
 
 const app = express();
 
-// Basic Auth (very simple lock)
+// Basic Auth (robust)
 function requireAuth(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const [scheme, encoded] = auth.split(" ");
-  if (scheme === "Basic" && encoded) {
-    const [user, pass] = Buffer.from(encoded, "base64").toString().split(":");
-    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
-      return next(); // let them through
-    }
+  const expectedUser = (process.env.ADMIN_USER || '').trim();
+  const expectedPass = (process.env.ADMIN_PASS || '').trim();
+
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="Admin Area"');
+    return res.status(401).send('Auth required');
   }
-  res.set("WWW-Authenticate", 'Basic realm="Admin Area"');
-  return res.status(401).send("Auth required");
+
+  const encoded = auth.slice('Basic '.length).trim();
+  let decoded;
+  try {
+    decoded = Buffer.from(encoded, 'base64').toString('utf8');
+  } catch {
+    res.set('WWW-Authenticate', 'Basic realm="Admin Area"');
+    return res.status(401).send('Bad credentials');
+  }
+
+  // Split on the FIRST colon only (passwords can contain colons)
+  const idx = decoded.indexOf(':');
+  const user = idx >= 0 ? decoded.slice(0, idx) : '';
+  const pass = idx >= 0 ? decoded.slice(idx + 1) : '';
+
+  if (user === expectedUser && pass === expectedPass) {
+    return next();
+  }
+
+  // (Optional) log the username tried to Railway logs for debugging
+  console.log('Auth failed for user:', user);
+
+  res.set('WWW-Authenticate', 'Basic realm="Admin Area"');
+  return res.status(401).send('Auth required');
 }
+
 
 // Parse JSON bodies
 app.use(express.json());
