@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tiny Message Board</title>
+  </head>
+  <body>
+    <h1>Tiny Message Board</h1>
+    <p>Type something and submit. This sends your text to a server.</p>
+
+    <input id="msg" type="text" placeholder="Type here..." />
+    <button id="send">Submit</button>
+
+    <h2>Recent messages</h2>
+    <div id="list"></div>
+
+    <script>
+      const msg = document.getElementById('msg');
+      const send = document.getElementById('send');
+      const list = document.getElementById('list');
+
+      async function refresh() {
+        const res = await fetch('/messages');
+        const items = await res.json();
+        list.innerHTML = items.map(it =>
+          `<p><strong>${new Date(it.time).toLocaleString()}</strong> — ${it.text}</p>`
+        ).join('');
+      }
+
+      send.addEventListener('click', async () => {
+        const text = msg.value.trim();
+        if (!text) return;
+        const res = await fetch('/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        if (res.ok) {
+          msg.value = '';
+          await refresh();
+        } else {
+          alert('Problem sending message.');
+        }
+      });
+
+      // Press Enter to submit
+      msg.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') send.click();
+      });
+
+      refresh();
+    </script>
+  </body>
+</html>
