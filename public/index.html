@@ -35,13 +35,11 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text })
         });
-        if (res.ok) {
-          msg.value = '';
-          await refresh();
-        } else {
-          alert('Problem sending message.');
-        }
-      });
+          if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      alert(`Submit failed (${res.status}): ${payload.error || 'Unknown error'}`);
+      return; // stop here on error
+    }
 
       // Press Enter to submit
       msg.addEventListener('keydown', (e) => {
