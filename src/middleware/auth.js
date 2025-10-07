@@ -1,5 +1,5 @@
-// auth.js (ESM)
-export function requireAuth(req, res, next) {
+// auth.js (CommonJS)
+function requireAuth(req, res, next) {
   const header = req.headers["authorization"] || "";
   const [scheme, encoded] = header.split(" ");
 
@@ -33,3 +33,5 @@ export function requireAuth(req, res, next) {
   res.set("WWW-Authenticate", 'Basic realm="Messages Log", charset="UTF-8"');
   return res.status(401).send("Authentication required.");
 }
+
+module.exports = requireAuth;
