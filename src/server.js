@@ -11,7 +11,7 @@ const messagesRouter = require('./routes/messages');
 const app = express();
 
 // If you're behind a proxy (Railway), trust it so req.ip is correct
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(helmet());
@@ -29,6 +29,19 @@ app.use(express.static('public'));
 app.get('/', (req, res) => {
   // If public/index.html exists, express.static will serve it automatically.
   res.sendFile('index.html', { root: 'public' });
+});
+
+app.get('/health', (req, res) => res.status(200).send('ok'));
+
+app.get('/dbcheck', async (req, res, next) => {
+  try {
+    // Prisma example:
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).send('db ok');
+  } catch (err) {
+    console.error('DB check failed:', err);
+    next(err); // will hit error handler below
+  }
 });
 
 // Protect ONLY the /messages section
