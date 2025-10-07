@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// prisma/schema.prisma
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Docs: https://pris.ly/d/prisma-schema
 
 datasource db {
   provider = "postgresql"
@@ -14,11 +12,13 @@ generator client {
 }
 
 model Message {
-  id         String   @id @default(uuid())
-  createdAt  DateTime @default(now())
-  author     String?
-  content    String
-  sourceIp   String?
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  name      String   @default("Anonymous")   // <— TEMP default so migration can run
+  content   String
+  sourceIp  String   @default("unknown")     // <— TEMP default so migration can run
+
+  @@index([createdAt, id])
 }
 
 model AccessLog {
@@ -32,4 +32,5 @@ model AccessLog {
 
   @@index([ts])
   @@index([remoteIp])
+  @@index([path])
 }
