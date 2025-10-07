@@ -1,9 +1,15 @@
 {
   "name": "my-first-website",
   "version": "1.0.0",
-  "main": "server.js",
+  "description": "",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js"
+    "dev": "node src/server.js",                  
+    "start": "node src/server.js",                
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",     
+    "cleanup": "node src/scripts/cleanup.js"
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
@@ -13,7 +19,6 @@
     "helmet": "^8.1.0",
     "prisma": "^6.16.3"
   },
-  "description": "",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Alycosai/tiny-message-board.git"
